@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NBA True Value Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:    #3B82F6;
+      --blue-dk: #2563eb;
+      --green:   #059669;
+      --purple:  #7c3aed;
+      --red:     #ef4444;
+      --amber:   #d97706;
+
+      --bg:        #0f1117;
+      --bg-card:   #1a1f2e;
+      --bg-muted:  #222736;
+      --border:    rgba(255,255,255,0.08);
+      --border-md: rgba(255,255,255,0.14);
+      --text:      #f0f2f8;
+      --text-muted:#8892aa;
+      --text-dim:  #555f75;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Barlow', sans-serif;
+      font-size: 15px;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* ── Layout ── */
+    .page {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+
+    /* ── Header ── */
+    .header {
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-md);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--blue);
+      box-shadow: 0 0 10px var(--blue);
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: 0.5px;
+      line-height: 1;
+    }
+    .header h1 span { color: var(--blue); }
+    .header p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-left: 22px;
+    }
+
+    /* ── Search ── */
+    .search-wrap { position: relative; margin-bottom: 2rem; }
+    .search-row { display: flex; gap: 8px; }
+    .search-row input {
+      flex: 1;
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-md);
+      border-radius: 10px;
+      font-family: 'Barlow', sans-serif;
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-row input::placeholder { color: var(--text-dim); }
+    .search-row input:focus { border-color: var(--blue); }
+    .search-row button {
+      padding: 12px 26px;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .search-row button:hover { background: var(--blue-dk); }
+    .search-row button:active { transform: scale(0.97); }
+
+    /* ── Autocomplete ── */
+    #suggestions {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border-md);
+      border-radius: 10px;
+      overflow: hidden;
+      z-index: 100;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    #suggestions div {
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+    #suggestions div:last-child { border-bottom: none; }
+    #suggestions div:hover { background: var(--bg-muted); }
+    #suggestions .sug-team { color: var(--text-muted); font-size: 12px; margin-left: 6px; }
+
+    /* ── Player Card ── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .player-top {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 1.5rem;
+    }
+    .avatar {
+      width: 62px; height: 62px;
+      border-radius: 50%;
+      background: var(--bg-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+      border: 2px solid var(--border-md);
+    }
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+    .pname {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1;
+    }
+    .pmeta {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .value-badge {
+      margin-left: auto;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .value-badge .big {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .value-badge .lbl {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* ── Stat Chips ── */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 1.25rem;
+    }
+    .metric {
+      background: var(--bg-muted);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+    .metric .val {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+    }
+    .metric .lbl {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-top: 2px;
+    }
+
+    /* ── BPM Bars ── */
+    .bpm-bars { margin-bottom: 1.25rem; }
+    .bpm-row { margin-bottom: 10px; }
+    .bpm-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+    }
+    .bar-track {
+      height: 8px;
+      background: var(--bg-muted);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.7s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* ── Salary Row ── */
+    .salary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--bg-muted);
+      border-radius: 10px;
+      margin-bottom: 1.25rem;
+    }
+    .salary-row .sl { font-size: 13px; color: var(--text-muted); }
+    .salary-row .sv {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    /* ── Grade Row ── */
+    .grade-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+    .grade-pill {
+      padding: 6px 18px;
+      border-radius: 20px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+    .explanation {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+    .explanation strong { color: var(--text); font-weight: 500; }
+
+    /* ── Chart ── */
+    .chart-wrap {
+      position: relative;
+      height: 180px;
+      margin-top: 0.5rem;
+    }
+
+    /* ── Leaderboard ── */
+    .section-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      letter-spacing: 0.3px;
+    }
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .tab {
+      padding: 6px 16px;
+      border: 1px solid var(--border-md);
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--text-muted);
+      background: var(--bg-card);
+      transition: all 0.15s;
+    }
+    .tab:hover { border-color: var(--blue); color: var(--blue); }
+    .tab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+    .top-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .top-table th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+      font-weight: 500;
+    }
+    .top-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .top-table tr:last-child td { border-bottom: none; }
+    .top-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .top-table .rank {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--blue);
+    }
+    .top-table .plink {
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--text);
+      transition: color 0.15s;
+    }
+    .top-table .plink:hover { color: var(--blue); }
+
+    /* ── Info Box ── */
+    .info-box {
+      margin-top: 1.5rem;
+      padding: 14px 18px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--blue);
+      border-radius: 10px;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+    .info-box strong { color: var(--text); font-weight: 500; }
+
+    /* ── Empty State ── */
+    .empty {
+      text-align: center;
+      padding: 3.5rem 1rem;
+      color: var(--text-muted);
+    }
+    .empty .ico { font-size: 48px; margin-bottom: 10px; }
+    .empty p { font-size: 14px; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.8;
+    }
+    footer a { color: var(--blue); text-decoration: none; }
+
+    /* ── Responsive ── */
+    @media (max-width: 540px) {
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+      .player-top { flex-wrap: wrap; }
+      .value-badge { margin-left: 0; }
+      .header h1 { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div class="header-dot"></div>
+      <h1>NBA <span>True Value</span> Dashboard</h1>
+    </div>
+    <p>Box Plus/Minus per $1M salary &nbsp;·&nbsp; 2024-25 season &nbsp;·&nbsp; BPM data: Basketball Reference</p>
+  </div>
+
+  <!-- Search -->
+  <div class="search-wrap">
+    <div class="search-row">
+      <input type="text" id="searchInput" placeholder="Search a player (e.g. Jokic, SGA, Franz Wagner)..." autocomplete="off" />
+      <button onclick="searchPlayer()">Search</button>
+    </div>
+    <div id="suggestions"></div>
+  </div>
+
+  <!-- Player Card -->
+  <div id="playerSection">
+    <div class="empty">
+      <div class="ico">🏀</div>
+      <p>Search any player above to see their True Value score</p>
+    </div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div style="margin-top: 2rem;">
+    <div class="section-title">Leaderboard</div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('value', this)">Best Value</div>
+      <div class="tab" onclick="switchTab('obpm',  this)">Offensive BPM</div>
+      <div class="tab" onclick="switchTab('dbpm',  this)">Defensive BPM</div>
+      <div class="tab" onclick="switchTab('bpm',   this)">Total BPM</div>
+    </div>
+    <div class="card" style="padding: 0.75rem;">
+      <table class="top-table">
+        <thead><tr id="tableHead"></tr></thead>
+        <tbody id="topTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Info Box -->
+  <div class="info-box">
+    <strong>What is BPM?</strong> Box Plus/Minus estimates a player's contribution per 100 possessions compared to a league-average player.
+    A score of <strong>+5.0</strong> means the team performs 5 points better per 100 possessions with that player on the floor.
+    League average = 0.0. Stars typically range from +4 to +10.
+    <br><br>
+    <strong>Value Score</strong> = (BPM ÷ Annual Salary in $M) × 10. Higher = more impact per dollar spent.
+    Players on rookie contracts often top this list because their production outpaces their pay.
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>Built by [Your Name] &nbsp;·&nbsp; BPM data from <a href="https://www.basketball-reference.com" target="_blank">Basketball Reference</a> &nbsp;·&nbsp; Salary data from <a href="https://hoopshype.com/salaries" target="_blank">HoopsHype</a></p>
+    <p style="margin-top:4px">Made as a portfolio project for BYU Information Systems &nbsp;·&nbsp; <a href="https://github.com/yourusername/nba-value-dashboard" target="_blank">View on GitHub</a></p>
+  </footer>
+
+</div><!-- /page -->
+
+<script>
+  // ─────────────────────────────────────────────
+  //  DATA
+  //  Source: Basketball Reference (BPM, season stats)
+  //          HoopsHype (salaries, 2024-25)
+  //  Update once per season — takes ~20 minutes.
+  // ─────────────────────────────────────────────
+  const PLAYERS = {
+    "Nikola Jokic":              { salary: 51.4, team: "Denver Nuggets",          pos: "C",  obpm:  9.1, dbpm:  2.1, bpm: 11.2, pts: 26.4, ast:  9.0, reb: 12.4 },
+    "Giannis Antetokounmpo":     { salary: 48.8, team: "Milwaukee Bucks",         pos: "PF", obpm:  6.9, dbpm:  2.2, bpm:  9.1, pts: 30.4, ast:  6.5, reb: 11.5 },
+    "Luka Doncic":               { salary: 43.0, team: "Dallas Mavericks",        pos: "PG", obpm:  9.2, dbpm: -1.4, bpm:  7.8, pts: 33.9, ast:  9.8, reb:  9.2 },
+    "Shai Gilgeous-Alexander":   { salary: 33.4, team: "OKC Thunder",             pos: "PG", obpm:  7.1, dbpm:  0.5, bpm:  7.6, pts: 30.1, ast:  6.2, reb:  5.5 },
+    "Joel Embiid":               { salary: 51.4, team: "Philadelphia 76ers",      pos: "C",  obpm:  6.8, dbpm:  0.5, bpm:  7.3, pts: 34.7, ast:  5.6, reb: 11.0 },
+    "Stephen Curry":             { salary: 55.8, team: "Golden State Warriors",   pos: "PG", obpm:  7.6, dbpm: -0.8, bpm:  6.8, pts: 26.4, ast:  5.1, reb:  4.5 },
+    "Kevin Durant":              { salary: 51.2, team: "Phoenix Suns",            pos: "SF", obpm:  6.1, dbpm:  0.4, bpm:  6.5, pts: 27.1, ast:  4.3, reb:  6.6 },
+    "LeBron James":              { salary: 47.6, team: "Los Angeles Lakers",      pos: "SF", obpm:  5.4, dbpm:  0.6, bpm:  6.0, pts: 25.7, ast:  8.3, reb:  7.3 },
+    "Tyrese Haliburton":         { salary: 22.3, team: "Indiana Pacers",          pos: "PG", obpm:  5.4, dbpm: -0.6, bpm:  4.8, pts: 20.1, ast: 10.9, reb:  3.7 },
+    "Jayson Tatum":              { salary: 32.6, team: "Boston Celtics",          pos: "SF", obpm:  4.1, dbpm:  0.6, bpm:  4.7, pts: 26.9, ast:  4.9, reb:  8.1 },
+    "Anthony Edwards":           { salary: 12.9, team: "Minnesota Timberwolves",  pos: "SG", obpm:  3.9, dbpm:  0.6, bpm:  4.5, pts: 25.9, ast:  5.1, reb:  5.4 },
+    "Jalen Brunson":             { salary: 24.3, team: "New York Knicks",         pos: "PG", obpm:  4.8, dbpm: -1.1, bpm:  3.7, pts: 28.7, ast:  6.7, reb:  3.6 },
+    "Domantas Sabonis":          { salary: 22.0, team: "Sacramento Kings",        pos: "C",  obpm:  2.8, dbpm:  0.6, bpm:  3.4, pts: 20.3, ast:  8.0, reb: 13.6 },
+    "Bam Adebayo":               { salary: 32.6, team: "Miami Heat",              pos: "C",  obpm:  1.2, dbpm:  2.1, bpm:  3.3, pts: 19.3, ast:  3.9, reb: 10.4 },
+    "Devin Booker":              { salary: 36.0, team: "Phoenix Suns",            pos: "SG", obpm:  3.5, dbpm: -0.5, bpm:  3.0, pts: 27.1, ast:  6.9, reb:  4.5 },
+    "Evan Mobley":               { salary:  7.9, team: "Cleveland Cavaliers",     pos: "C",  obpm:  0.8, dbpm:  2.1, bpm:  2.9, pts: 15.7, ast:  2.6, reb:  9.4 },
+    "Donovan Mitchell":          { salary: 35.9, team: "Cleveland Cavaliers",     pos: "SG", obpm:  3.2, dbpm: -0.5, bpm:  2.7, pts: 26.6, ast:  6.1, reb:  5.1 },
+    "Kawhi Leonard":             { salary: 48.8, team: "Los Angeles Clippers",    pos: "SF", obpm:  2.1, dbpm:  1.1, bpm:  3.2, pts: 23.7, ast:  3.6, reb:  6.1 },
+    "Anthony Davis":             { salary: 40.6, team: "Los Angeles Lakers",      pos: "C",  obpm:  2.1, dbpm:  1.4, bpm:  3.5, pts: 24.7, ast:  3.5, reb: 12.6 },
+    "Franz Wagner":              { salary:  7.1, team: "Orlando Magic",           pos: "SF", obpm:  1.6, dbpm:  0.2, bpm:  1.8, pts: 19.7, ast:  3.9, reb:  4.2 },
+    "Trae Young":                { salary: 43.0, team: "Atlanta Hawks",           pos: "PG", obpm:  4.9, dbpm: -3.0, bpm:  1.9, pts: 25.7, ast: 10.8, reb:  2.8 },
+    "Damian Lillard":            { salary: 48.8, team: "Milwaukee Bucks",         pos: "PG", obpm:  3.5, dbpm: -1.8, bpm:  1.7, pts: 24.3, ast:  7.4, reb:  4.4 },
+    "Jimmy Butler":              { salary: 48.8, team: "Miami Heat",              pos: "SF", obpm:  2.2, dbpm: -0.4, bpm:  1.8, pts: 20.8, ast:  5.3, reb:  5.3 },
+    "Kyrie Irving":              { salary: 40.1, team: "Dallas Mavericks",        pos: "PG", obpm:  2.8, dbpm: -1.4, bpm:  1.4, pts: 25.0, ast:  5.2, reb:  5.0 },
+    "Paul George":               { salary: 51.4, team: "Philadelphia 76ers",      pos: "SF", obpm:  1.4, dbpm:  0.1, bpm:  1.5, pts: 22.6, ast:  3.5, reb:  5.2 },
+  };
+
+  // ─────────────────────────────────────────────
+  //  HELPERS
+  // ─────────────────────────────────────────────
+  function valueScore(p)  { return +( p.bpm / p.salary * 10 ).toFixed(2); }
+  function initials(name) { return name.split(' ').map(w => w[0]).join('').slice(0, 2); }
+  function fmtSal(m)      { return '$' + m.toFixed(1) + 'M'; }
+  function sign(n)        { return n > 0 ? '+' + n.toFixed(1) : n.toFixed(1); }
+
+  // DiceBear: free open-source avatar API — no copyright issues, never breaks.
+  // "notionists" style gives illustrated portrait-style faces seeded by player name.
+  // Each name always produces the same unique avatar.
+  function dicebearUrl(name) {
+    const seed = encodeURIComponent(name);
+    return `https://api.dicebear.com/9.x/notionists/svg?seed=${seed}&backgroundColor=1a1f2e&scale=110`;
+  }
+
+  function getGrade(score) {
+    if (score >= 2.0) return { label: 'Elite Value',    color: '#10b981', bg: 'rgba(16,185,129,0.15)'  };
+    if (score >= 1.2) return { label: 'Great Value',    color: '#3B82F6', bg: 'rgba(59,130,246,0.15)'  };
+    if (score >= 0.5) return { label: 'Fair Value',     color: '#f59e0b', bg: 'rgba(245,158,11,0.15)'  };
+    if (score >= 0.0) return { label: 'Overpaid',       color: '#ef4444', bg: 'rgba(239,68,68,0.15)'   };
+    return                   { label: 'Negative BPM',  color: '#6b7280', bg: 'rgba(107,114,128,0.15)' };
+  }
+
+  // ─────────────────────────────────────────────
+  //  SEARCH & AUTOCOMPLETE
+  // ─────────────────────────────────────────────
+  function searchPlayer() {
+    const q = document.getElementById('searchInput').value.trim();
+    document.getElementById('suggestions').style.display = 'none';
+    if (!q) return;
+    const match = Object.keys(PLAYERS).find(n => n.toLowerCase().includes(q.toLowerCase()));
+    match ? renderPlayer(match)
+          : (document.getElementById('playerSection').innerHTML =
+              '<div class="empty"><div class="ico">🤔</div><p>No player found. Try: Jokic, SGA, Anthony Edwards...</p></div>');
+  }
+
+  function buildSuggestions(q) {
+    const box = document.getElementById('suggestions');
+    if (!q) { box.style.display = 'none'; return; }
+    const matches = Object.keys(PLAYERS).filter(n => n.toLowerCase().includes(q.toLowerCase())).slice(0, 6);
+    if (!matches.length) { box.style.display = 'none'; return; }
+    box.innerHTML = matches.map(n =>
+      `<div onclick="pick('${n}')">${n}<span class="sug-team">· ${PLAYERS[n].team}</span></div>`
+    ).join('');
+    box.style.display = 'block';
+  }
+
+  function pick(name) {
+    document.getElementById('searchInput').value = name;
+    document.getElementById('suggestions').style.display = 'none';
+    renderPlayer(name);
+  }
+
+  document.getElementById('searchInput').addEventListener('input', e => buildSuggestions(e.target.value));
+  document.getElementById('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') searchPlayer(); });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#suggestions') && !e.target.closest('.search-wrap'))
+      document.getElementById('suggestions').style.display = 'none';
+  });
+
+  // ─────────────────────────────────────────────
+  //  PLAYER CARD RENDER
+  // ─────────────────────────────────────────────
+  let chartInst = null;
+
+  function renderPlayer(name) {
+    const p = PLAYERS[name];
+    if (!p) return;
+
+    const score    = valueScore(p);
+    const grade    = getGrade(score);
+    const maxBPM   = Math.max(...Object.values(PLAYERS).map(x => x.bpm));
+    const maxOBPM  = Math.max(...Object.values(PLAYERS).map(x => x.obpm));
+    const maxDBPM  = Math.max(...Object.values(PLAYERS).map(x => x.dbpm));
+    const maxScore = Math.max(...Object.values(PLAYERS).map(valueScore));
+
+    const pctOf = (val, max) => Math.max(0, Math.min(100, (val / max) * 100)).toFixed(1);
+
+    document.getElementById('playerSection').innerHTML = `
+      <div class="card">
+
+        <!-- Top row -->
+        <div class="player-top">
+          <div class="avatar"><img src="${dicebearUrl(name)}" alt="${name}" /></div>
+          <div>
+            <div class="pname">${name}</div>
+            <div class="pmeta">${p.pos} &nbsp;·&nbsp; ${p.team}</div>
+          </div>
+          <div class="value-badge">
+            <div class="big" style="color:${grade.color}">${score.toFixed(2)}</div>
+            <div class="lbl">Value Score</div>
+          </div>
+        </div>
+
+        <!-- Stat chips -->
+        <div class="metrics-grid">
+          <div class="metric">
+            <div class="val" style="color:#3B82F6">${sign(p.bpm)}</div>
+            <div class="lbl">Total BPM</div>
+          </div>
+          <div class="metric">
+            <div class="val" style="color:#059669">${sign(p.obpm)}</div>
+            <div class="lbl">Off BPM</div>
+          </div>
+          <div class="metric">
+            <div class="val" style="color:#7c3aed">${sign(p.dbpm)}</div>
+            <div class="lbl">Def BPM</div>
+          </div>
+          <div class="metric">
+            <div class="val" style="color:var(--text)">${p.pts.toFixed(1)}</div>
+            <div class="lbl">PPG</div>
+          </div>
+        </div>
+
+        <!-- BPM progress bars -->
+        <div class="bpm-bars">
+          <div class="bpm-row">
+            <div class="bpm-label"><span>Offensive BPM vs. best in league</span><span>${sign(p.obpm)}</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pctOf(p.obpm, maxOBPM)}%;background:#059669"></div></div>
+          </div>
+          <div class="bpm-row">
+            <div class="bpm-label"><span>Defensive BPM vs. best in league</span><span>${sign(p.dbpm)}</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pctOf(p.dbpm, maxDBPM)}%;background:#7c3aed"></div></div>
+          </div>
+          <div class="bpm-row">
+            <div class="bpm-label"><span>Value score vs. best in league</span><span>${pctOf(score, maxScore)}%</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pctOf(score, maxScore)}%;background:#3B82F6"></div></div>
+          </div>
+        </div>
+
+        <!-- Salary -->
+        <div class="salary-row">
+          <span class="sl">2024-25 Annual Salary</span>
+          <span class="sv">${fmtSal(p.salary)}</span>
+        </div>
+
+        <!-- Grade + explanation -->
+        <div class="grade-row">
+          <div class="grade-pill" style="background:${grade.bg};color:${grade.color}">${grade.label}</div>
+          <div class="explanation">
+            ${name.split(' ').slice(-1)[0]} has a BPM of <strong>${sign(p.bpm)}</strong> on a
+            <strong>${fmtSal(p.salary)}</strong> salary —
+            generating <strong>${score.toFixed(2)}</strong> impact points per $1M.
+          </div>
+        </div>
+
+        <!-- Bar chart -->
+        <div class="chart-wrap">
+          <canvas id="bpmChart"></canvas>
+        </div>
+
+      </div>
+    `;
+
+    // Destroy old chart before creating new one
+    if (chartInst) chartInst.destroy();
+    chartInst = new Chart(document.getElementById('bpmChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Offensive BPM', 'Defensive BPM', 'Total BPM'],
+        datasets: [{
+          data: [p.obpm, p.dbpm, p.bpm],
+          backgroundColor: ['#059669', '#7c3aed', '#3B82F6'],
+          borderRadius: 5,
+          barThickness: 44,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: {
+            min: Math.min(p.obpm, p.dbpm, p.bpm, 0) - 1,
+            grid:  { color: 'rgba(255,255,255,0.05)' },
+            ticks: { color: '#555f75', font: { size: 11 } },
+          },
+          x: {
+            grid:  { display: false },
+            ticks: { color: '#8892aa', font: { size: 11 } },
+          }
+        }
+      }
+    });
+
+    // Scroll card into view on mobile
+    document.getElementById('playerSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // ─────────────────────────────────────────────
+  //  LEADERBOARD
+  // ─────────────────────────────────────────────
+  const TAB_CONFIGS = {
+    value: {
+      sort:  (a, b) => valueScore(b) - valueScore(a),
+      cols:  ['#', 'Player', 'Salary', 'BPM', 'Value Score'],
+      cells: (p)  => [fmtSal(p.salary), sign(p.bpm), valueScore(p).toFixed(2)],
+    },
+    obpm: {
+      sort:  (a, b) => b.obpm - a.obpm,
+      cols:  ['#', 'Player', 'Salary', 'Off BPM', 'Def BPM'],
+      cells: (p)  => [fmtSal(p.salary), sign(p.obpm), sign(p.dbpm)],
+    },
+    dbpm: {
+      sort:  (a, b) => b.dbpm - a.dbpm,
+      cols:  ['#', 'Player', 'Salary', 'Def BPM', 'Off BPM'],
+      cells: (p)  => [fmtSal(p.salary), sign(p.dbpm), sign(p.obpm)],
+    },
+    bpm: {
+      sort:  (a, b) => b.bpm - a.bpm,
+      cols:  ['#', 'Player', 'Salary', 'Total BPM', 'Value Score'],
+      cells: (p)  => [fmtSal(p.salary), sign(p.bpm), valueScore(p).toFixed(2)],
+    },
+  };
+
+  function buildTable(tab) {
+    const cfg    = TAB_CONFIGS[tab];
+    const sorted = Object.entries(PLAYERS).sort(([, a], [, b]) => cfg.sort(a, b)).slice(0, 10);
+
+    document.getElementById('tableHead').innerHTML =
+      cfg.cols.map(c => `<th>${c}</th>`).join('');
+
+    document.getElementById('topTable').innerHTML = sorted.map(([name, p], i) => {
+      const cells = cfg.cells(p);
+      return `<tr>
+        <td class="rank">${i + 1}</td>
+        <td class="plink" onclick="pick('${name}')">${name}</td>
+        ${cells.map(c => `<td>${c}</td>`).join('')}
+      </tr>`;
+    }).join('');
+  }
+
+  function switchTab(tab, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    buildTable(tab);
+  }
+
+  // ── Init ──
+  buildTable('value');
+</script>
+</body>
+</html>
