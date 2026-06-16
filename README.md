@@ -1,4 +1,4 @@
-# 🏀 NBA True Value Dashboard
+# NBA True Value Dashboard
 
 A single-page analytics dashboard that ranks NBA players by **Box Plus/Minus per $1M of salary** — surfacing who's actually worth their contract.
 
@@ -10,7 +10,7 @@ A single-page analytics dashboard that ranks NBA players by **Box Plus/Minus per
 
 ---
 
-## 🔍 What It Does
+## What It Does
 
 Most NBA salary discussions focus on raw stats. This dashboard asks a different question: **how much impact does a player deliver per dollar spent?**
 
@@ -20,7 +20,7 @@ A higher score means more on-court impact per dollar. Players on rookie contract
 
 ---
 
-## 📊 Features
+## Features
 
 - **Player search** with live autocomplete
 - **Value Score** badge with color-coded grade (Elite → Overpaid)
@@ -33,7 +33,7 @@ A higher score means more on-court impact per dollar. Players on rookie contract
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 No build step required. It's a single HTML file.
 
@@ -63,7 +63,7 @@ nba-value-dashboard/
 
 ---
 
-## 📦 Dependencies
+## Dependencies
 
 All loaded via CDN — no `npm install` needed.
 
@@ -75,7 +75,7 @@ All loaded via CDN — no `npm install` needed.
 
 ---
 
-## 📋 Data Sources
+## Data Sources
 
 | Data | Source | Update frequency |
 |---|---|---|
@@ -86,7 +86,7 @@ Stats reflect the **2024–25 NBA season**. To update for a new season, edit the
 
 ---
 
-## 🧮 Methodology
+## Methodology
 
 **Box Plus/Minus (BPM)** estimates a player's contribution per 100 possessions relative to a league-average player, using only box score stats. It is not a "catch-all" metric — it doesn't account for minutes played, team context, or injury-shortened seasons.
 
@@ -94,7 +94,7 @@ Stats reflect the **2024–25 NBA season**. To update for a new season, edit the
 
 ---
 
-## 🛠️ Customization
+## Customization
 
 Want to tweak the grade thresholds? Edit `getGrade()` in the script:
 
@@ -125,7 +125,7 @@ Want to add more players? Add an entry to the `PLAYERS` object:
 
 ---
 
-## 📝 License
+## License
 
 MIT — free to use, modify, and redistribute.
 
