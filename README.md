@@ -4,7 +4,9 @@ A single-page analytics dashboard that ranks NBA players by **Box Plus/Minus per
 
 > Built as a portfolio project for BYU Information Systems
 
-![Dashboard Preview](preview.png)
+
+<img width="1497" height="730" alt="Screenshot 2026-06-16 at 1 15 09 PM" src="https://github.com/user-attachments/assets/e5f6421f-8191-47b4-ad3f-f514c3b033c4" />
+
 
 ---
 
